@@ -29,4 +29,22 @@ class WrapperMap(private val origin: Map<String, Any>, private val alternative: 
         return value ?: alternative.getOrDefault(key, defaultValue)
     }
 
+    fun getByPath(path: String): Any? {
+        val props = path.split(".")
+
+        var result: Any? = null
+
+        var map: Map<String, Any> = this
+
+        for (prop in props) {
+            result = map[prop]
+            if (result == null || result !is Map<*, *>) {
+                return result
+            }
+            map = result as Map<String, Any>
+        }
+
+        return result
+    }
+
 }

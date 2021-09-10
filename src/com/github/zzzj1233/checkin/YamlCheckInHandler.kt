@@ -63,7 +63,6 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
                     .filter { it != COMMON_MODULE_NAME }
                     .let {
                         BalloonNotifications.showWarningNotification("检测到${it.joinToString(",")}包含${commonProd}配置文件,这些文件将被忽略检查")
-                        commonProdChanges.removeAll(it)
                     }
         }
 
