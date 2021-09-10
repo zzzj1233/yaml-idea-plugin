@@ -1,6 +1,8 @@
 package com.github.zzzj1233.checkin
 
+import com.github.zzzj1233.extension.WrapperMap
 import com.github.zzzj1233.util.BalloonNotifications
+import com.github.zzzj1233.util.YamlUtils
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.module.ModuleUtil
@@ -81,9 +83,13 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
             }
 
             // 合并common.yml和commonprod.yml
-            var commonProd = prodChanges.find { change -> change.virtualFile!!.name.contains("prod") }!!
+            var common = prodChanges.find { change -> change.virtualFile!!.name.contains("prod") }!!
             var prod = prodChanges.find { change -> !change.virtualFile!!.name.contains("prod") }!!
 
+            val beforeYamlMap = WrapperMap(YamlUtils.toMap(prod.beforeRevision?.content), YamlUtils.toMap(common.beforeRevision?.content))
+            val afterYamlMap = WrapperMap(YamlUtils.toMap(prod.afterRevision?.content), YamlUtils.toMap(common.afterRevision?.content))
+
+            // 比较两个map的内容
 
         }
 
