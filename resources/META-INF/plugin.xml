@@ -1,0 +1,32 @@
+<idea-plugin>
+
+    <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
+    <id>org.intellij.sdk.liveTemplates</id>
+
+    <!-- Text to display as name on Preferences/Settings | Plugin page -->
+    <name>SDK: Live Templates Sample</name>
+
+    <!-- Product and plugin compatibility requirements -->
+    <depends>com.intellij.modules.lang</depends>
+
+    <!-- Text to display as description on Preferences/Settings | Plugin page -->
+    <description></description>
+
+    <change-notes></change-notes>
+
+    <!-- Text to display as company information on Preferences/Settings | Plugin page -->
+    <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <checkinHandlerFactory implementation="com.github.zzzj1233.checkin.YamlCheckInFactory" order="last"/>
+    </extensions>
+
+    <actions>
+
+        <action class="com.github.zzzj1233.action.MessageAct" id="Message.Act1" text="Message">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+
+    </actions>
+
+</idea-plugin>
