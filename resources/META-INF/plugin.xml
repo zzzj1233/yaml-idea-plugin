@@ -23,10 +23,6 @@
 
     <actions>
 
-        <action class="com.github.zzzj1233.action.MessageAct" id="Message.Act1" text="Message">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
-        </action>
-
     </actions>
 
 </idea-plugin>

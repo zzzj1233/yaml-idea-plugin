@@ -1,10 +1,11 @@
 package com.github.zzzj1233.checkin
 
-import com.github.zzzj1233.extension.WrapperMap
+import com.github.zzzj1233.diff.YamlTableDialog
+import com.github.zzzj1233.model.YamlDiffHolder
 import com.github.zzzj1233.util.BalloonNotifications
+import com.github.zzzj1233.util.MapUtils
 import com.github.zzzj1233.util.YamlUtils
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.vcs.CheckinProjectPanel
 import com.intellij.openapi.vcs.changes.CommitContext
@@ -16,17 +17,19 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
 
     private var open: Boolean = true
 
+    private val project get() = panel.project
+
     override fun getBeforeCheckinConfigurationPanel() = BooleanCommitOption(panel, "Yaml check", true, this::open,
             Consumer { open = it }
     )
 
     companion object {
-        private const val COMMON_MODULE_NAME = "goldhorse-common";
+        private const val COMMON_MODULE_NAME = "goldhorse-common"
 
         private val prod = arrayOf("application", "application-prod")
-        private val commonProd = arrayOf("application-common", "application-common-prod")
+        private val commonProd = arrayOf("application-common", "application-commonprod")
 
-        private val LOG = Logger.getInstance(FileChooser::class.java)
+        private val LOG = Logger.getInstance(YamlCheckInHandler::class.java)
 
         val prodConfigs = prod.map { it.plus(".yml") } + prod.map { it.plus(".yaml") }
         val commonProdConfigs = commonProd.map { it.plus(".yml") } + prod.map { it.plus(".yaml") }
@@ -35,7 +38,8 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
     override fun beforeCheckin(): ReturnResult {
         // 1. 没有勾选yaml check
         if (!open) {
-            return ReturnResult.COMMIT
+            return ReturnResult.CANCEL
+            // return ReturnResult.COMMIT
         }
 
         // YamlDiffDialog(panel.project).show()
@@ -62,34 +66,41 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
                     .map { it.name }
                     .filter { it != COMMON_MODULE_NAME }
                     .let {
-                        BalloonNotifications.showWarningNotification("检测到${it.joinToString(",")}包含${commonProd}配置文件,这些文件将被忽略检查")
+                        BalloonNotifications.showWarningNotification("检测到${it.joinToString(",")}包含${commonProd.contentToString()}配置文件,这些文件将被忽略检查", project = project)
                     }
         }
 
 
         // 4. 如果commonProdChanges被清空了,那么直接commit
         if (prodChanges.isEmpty() && commonProdChanges.isEmpty()) {
-            return ReturnResult.COMMIT
+            return ReturnResult.CANCEL
+            // return ReturnResult.COMMIT
         }
 
         // 5. 只有commonProd的配置发生了变更
         if (prodChanges.isEmpty()) {
-            val model = "Global"
+            val moduleName = "Global"
 
-            if (prodChanges.size != 2) {
-                BalloonNotifications.showWarningNotification("检测到多个common配置文件${prodChanges.map { it.virtualFile?.name }.joinToString(",")},这些文件将被忽略检查")
-                return ReturnResult.COMMIT
+            if (commonProdChanges.size > 2) {
+                BalloonNotifications.showWarningNotification("检测到多个common配置文件${prodChanges.map { it.virtualFile?.name }.joinToString(",")},本次将被忽略检查", project = project)
+                return ReturnResult.CANCEL
+                // return ReturnResult.COMMIT
             }
 
             // 合并common.yml和commonprod.yml
-            var common = prodChanges.find { change -> change.virtualFile!!.name.contains("prod") }!!
-            var prod = prodChanges.find { change -> !change.virtualFile!!.name.contains("prod") }!!
+            val common = commonProdChanges.find { change -> !change.virtualFile!!.name.contains("prod") }
+            val prod = commonProdChanges.find { change -> change.virtualFile!!.name.contains("prod") }
 
-            val beforeYamlMap = WrapperMap(YamlUtils.toMap(prod.beforeRevision?.content), YamlUtils.toMap(common.beforeRevision?.content))
-            val afterYamlMap = WrapperMap(YamlUtils.toMap(prod.afterRevision?.content), YamlUtils.toMap(common.afterRevision?.content))
+            val prodBeforeMap = YamlUtils.toMap(prod?.beforeRevision?.content)
+            MapUtils.override(YamlUtils.toMap(common?.beforeRevision?.content), prodBeforeMap);
+
+            val prodAfterMap = YamlUtils.toMap(prod?.afterRevision?.content)
+            MapUtils.override(YamlUtils.toMap(common?.afterRevision?.content), prodAfterMap);
 
             // 比较两个map的内容
+            val diff = MapUtils.compareMap(prodBeforeMap, prodAfterMap)
 
+            YamlTableDialog(project, listOf(YamlDiffHolder(moduleName, diff))).show()
         }
 
         // 6. 将application.yml, application-prod.yml, application-common.yml, application-commonprod.yml的配置合并

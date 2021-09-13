@@ -4,9 +4,9 @@ import org.yaml.snakeyaml.Yaml
 
 object YamlUtils {
 
-    fun toMap(content: String?): Map<String, Any> =
-            if (content != null) Yaml().loadAs(content, Map::class.java) as Map<String, Any>
-            else emptyMap()
+    fun toMap(content: String?): MutableMap<String, Any> =
+            if (content.isNullOrBlank()) mutableMapOf()
+            else Yaml().loadAs(content, Map::class.java) as MutableMap<String, Any>
 
 }
 
