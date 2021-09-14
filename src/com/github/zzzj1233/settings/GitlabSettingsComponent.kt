@@ -16,6 +16,8 @@ class GitlabSettingsComponent {
 
     val accessKeyText = JBTextField()
 
+    val commonModuleText = JBTextField()
+
     fun getPreferredFocusedComponent(): JComponent? {
         return uriText
     }
@@ -25,6 +27,7 @@ class GitlabSettingsComponent {
                 .addLabeledComponent(JBLabel("Gitlab uri "), uriText, 1, false)
                 .addLabeledComponent(JBLabel("Project id "), projectIdText, 1, false)
                 .addLabeledComponent(JBLabel("Access key "), accessKeyText, 1, false)
+                .addLabeledComponent(JBLabel("Common module "), commonModuleText, 1, false)
                 .addComponentFillVertically(JPanel(), 0)
                 .panel
     }

@@ -9,25 +9,15 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 @State(name = "GitlabSettingState", storages = [Storage(file = "yaml_gitlab.xml")])
 class GitlabSettingState : PersistentStateComponent<GitlabSettingState> {
 
-    var uri: String? = null
-        get() = field ?: DEFAULT_URI
-
-    var projectId: Int? = null
-        get() = field ?: DEFAULT_PROJECT_ID
-
-    var accessKey: String? = null
-        get() = field ?: DEFAULT_ACCESS_KEY
+    var commonModuleName: String? = null
+        get() = field ?: DEFAULT_MODULE_NAME
 
     var branches: MutableMap<String, Long> = mutableMapOf()
 
     companion object {
         fun getInstance(): GitlabSettingState = ServiceManager.getService(GitlabSettingState::class.java)
 
-        const val DEFAULT_URI = "http://172.16.50.164"
-
-        const val DEFAULT_PROJECT_ID = 117
-
-        const val DEFAULT_ACCESS_KEY = "qdNwxHSc8ixwoMBxhPMv"
+        const val DEFAULT_MODULE_NAME = "goldhorse-common"
     }
 
     override fun getState(): GitlabSettingState? {
@@ -39,8 +29,7 @@ class GitlabSettingState : PersistentStateComponent<GitlabSettingState> {
     }
 
     override fun toString(): String {
-        return "GitlabSettingState(uri = $uri, projectId = $projectId, accessKey = $accessKey)"
+        return "GitlabSettingState(commonModuleName = $commonModuleName)"
     }
-
 
 }

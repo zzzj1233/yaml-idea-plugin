@@ -1,9 +1,9 @@
 package com.github.zzzj1233.action
 
-import com.github.zzzj1233.gitlab.GitlabSdk
 import com.github.zzzj1233.model.GitBranch
 import com.github.zzzj1233.settings.GitlabSettingState
 import com.github.zzzj1233.util.BalloonNotifications
+import com.github.zzzj1233.util.GitUtil
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
@@ -23,17 +23,17 @@ class CompareYamlAction : AnAction() {
         val project = event.project
 
         try {
-            // 1. 从gitlab拉取分支
-            val branches = GitlabSdk.branches()
+            // 1. 获取git分支
+            val branches = emptyMap<String, GitBranch>()
 
-            val popupStep = object : BaseListPopupStep<String>("Branches", branches.map { it.name }) {
+            val popupStep = object : BaseListPopupStep<String>("Branches", branches.keys.toList()) {
                 override fun onChosen(selectedValue: String?, finalChoice: Boolean): PopupStep<*>? {
-                    selectedValue?.apply { onChooseBranch(this, branches.map { it.name!! to it }.toMap()) }
+                    selectedValue?.apply { onChooseBranch(this, branches) }
                     return super.onChosen(selectedValue, finalChoice)
                 }
             }
 
-            // 2. 显示pop
+            // 2. 显示popup
             ListPopupImpl(project, popupStep).showCenteredInCurrentWindow(project
                     ?: ProjectManager.getInstance().defaultProject)
 
@@ -51,15 +51,18 @@ class CompareYamlAction : AnAction() {
         val lastCommitId = branches[branchName]?.commit?.id
 
         if (lastCommitId == null) {
-            log.error("lastCommitId is null ? , branch = $branchName")
+            log.warn("lastCommitId is null ? , branch = $branchName")
         }
 
         // 2. 使用缓存的文件内容
         if (true == settings.branches[branchName]?.equals(lastCommitId)) {
 
         }
+        // 3. 项目中所有的module->yaml的映射
+        // val moduleYamlFiles = GHModuleUtils.getModuleYamlFiles(project)
 
-        // 3. 使用sdk获取最新的文件内容
+        // 4. 使用git diff命令查看哪些配置文件有过变更
+        GitUtil.diffStat(branchName)
 
     }
 

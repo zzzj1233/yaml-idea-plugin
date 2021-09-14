@@ -23,23 +23,17 @@ class GitlabSettingsConfigurable : Configurable {
 
     override fun isModified(): Boolean {
         val settings: GitlabSettingState = GitlabSettingState.getInstance()
-        return settingsComponent.uriText.text != settings.uri ||
-                settingsComponent.projectIdText.text != settings.projectId.toString() ||
-                settingsComponent.accessKeyText.text != settings.accessKey
+        return settingsComponent.commonModuleText.text != settings.commonModuleName
     }
 
     override fun apply() {
         val settings: GitlabSettingState = GitlabSettingState.getInstance()
-        settings.uri = settingsComponent.uriText.text
-        settings.projectId = settingsComponent.projectIdText.text.toInt()
-        settings.accessKey = settingsComponent.accessKeyText.text
+        settings.commonModuleName = settingsComponent.commonModuleText.text
     }
 
     override fun reset() {
         val settings: GitlabSettingState = GitlabSettingState.getInstance()
-        settingsComponent.uriText.text = settings.uri
-        settingsComponent.projectIdText.text = settings.projectId.toString()
-        settingsComponent.accessKeyText.text = settings.accessKey
+        settingsComponent.commonModuleText.text = settings.commonModuleName
     }
 
 }
