@@ -1,10 +1,10 @@
 <idea-plugin>
 
     <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
-    <id>org.intellij.sdk.liveTemplates</id>
+    <id>com.github.zzzj1233.yaml.checker</id>
 
     <!-- Text to display as name on Preferences/Settings | Plugin page -->
-    <name>SDK: Live Templates Sample</name>
+    <name>Yaml checker</name>
 
     <!-- Product and plugin compatibility requirements -->
     <depends>com.intellij.modules.lang</depends>
@@ -19,10 +19,18 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <checkinHandlerFactory implementation="com.github.zzzj1233.checkin.YamlCheckInFactory" order="last"/>
+        <applicationService serviceImplementation="com.github.zzzj1233.config.YamlCheckBoxState"/>
+        <applicationService serviceImplementation="com.github.zzzj1233.settings.GitlabSettingState"/>
+        <applicationConfigurable parentId="tools" instance="com.github.zzzj1233.settings.GitlabSettingsConfigurable"
+                                 id="com.github.zzzj1233.settings.GitlabSettingsConfigurable"
+                                 displayName="Yaml Checker Gitlab Config"/>
     </extensions>
 
     <actions>
-
+        <action id="com.github.zzzj1233.action.CompareYamlAction" class="com.github.zzzj1233.action.CompareYamlAction"
+                text="YamlCheck" description="Check yaml by git branches">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
     </actions>
 
 </idea-plugin>
