@@ -25,6 +25,10 @@ object MapUtils {
     }
 
     fun compareMap(old: Map<String, Any>, new: Map<String, Any>): Pair<Map<String, Any>, Map<String, Any>> {
+        if (old == new) {
+            return old to new
+        }
+
         val oldMap = mutableMapOf<String, Any>()
         val newMap = mutableMapOf<String, Any>()
 

@@ -1,7 +1,10 @@
 package com.github.zzzj1233.util
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.InputStreamReader
+import java.util.*
+import kotlin.system.measureTimeMillis
 
 fun VirtualFile?.walkFilter(predicate: (VirtualFile) -> Boolean): List<VirtualFile> {
     if (this == null || !this.isDirectory) {
@@ -37,7 +40,21 @@ private fun walkFilter(file: VirtualFile, predicate: (VirtualFile) -> Boolean, r
 }
 
 @Throws(RuntimeException::class)
-fun Process.smartExecute(): List<String> {
+fun Process.execute(): List<String> {
+
+    val scanner = Scanner(this.inputStream)
+
+    val future = ApplicationManager.getApplication().executeOnPooledThread<List<String>> {
+        val list = mutableListOf<String>()
+
+        scanner.use {
+            while (scanner.hasNextLine()) {
+                list.add(scanner.nextLine())
+            }
+            list
+        }
+    }
+
     val code = this.waitFor()
 
     if (code != 0) {
@@ -45,8 +62,7 @@ fun Process.smartExecute(): List<String> {
         throw RuntimeException(msg)
     }
 
-    return InputStreamReader(this.inputStream).use {
-        it.readLines()
-    }
+    return future.get()
+
 }
 
