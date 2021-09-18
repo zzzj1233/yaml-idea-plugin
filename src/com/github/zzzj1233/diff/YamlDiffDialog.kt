@@ -13,7 +13,10 @@ import com.intellij.openapi.ui.DialogWrapper
 import java.awt.Dimension
 import javax.swing.JComponent
 
-class YamlDiffDialog(private val project: Project, private val diffHolder: YamlDiffHolder) : DialogWrapper(project) {
+class YamlDiffDialog(private val project: Project, private val diffHolder: YamlDiffHolder,
+                     private val leftTitle: String = "BeforeCommit",
+                     private val rightTitle: String = "AfterCommit"
+) : DialogWrapper(project) {
 
     init {
         this.title = diffHolder.moduleName
@@ -44,13 +47,14 @@ class YamlDiffDialog(private val project: Project, private val diffHolder: YamlD
         }
 
         val diffRequest = object : ContentDiffRequest() {
+            val diffContents = diffHolder.diffContents.toList()
 
             override fun getContents(): List<DiffContent> {
-                return listOf(diffHolder.before, diffHolder.after)
+                return diffContents
             }
 
             override fun getContentTitles(): List<String> {
-                return listOf("BeforeCommit", "AfterCommit")
+                return listOf(leftTitle, rightTitle)
             }
 
             override fun getTitle() = diffHolder.moduleName

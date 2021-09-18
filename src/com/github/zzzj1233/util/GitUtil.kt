@@ -1,12 +1,12 @@
 package com.github.zzzj1233.util
 
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.rt.execution.testFrameworks.ProcessBuilder
 import java.io.File
 
 object GitUtil {
 
-    private val log = Logger.getInstance(GitUtil::class.java)
+    private val log = logger<GitUtil>()
 
     fun branches(workdir: String): List<String> {
         val builder = ProcessBuilder()
@@ -14,7 +14,6 @@ object GitUtil {
         builder.add("branch")
         builder.add("--sort=-committerdate")
         builder.setWorkingDir(File(workdir))
-
 
         return try {
             builder.createProcess().execute()
@@ -28,12 +27,10 @@ object GitUtil {
         val builder = ProcessBuilder()
         builder.add("git")
         builder.add("diff")
-        currentBranch?.apply { builder.add(this.trim()) }
-        targetBranch?.apply { builder.add(this.trim()) }
+        currentBranch?.apply { builder.add(this.trim().removePrefix("*").trim()) }
+        targetBranch?.apply { builder.add(this.trim().removePrefix("*").trim()) }
         builder.add("--name-only")
         builder.setWorkingDir(File(workdir))
-
-
 
         return try {
             builder.createProcess().execute()

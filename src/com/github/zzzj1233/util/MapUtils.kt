@@ -1,7 +1,5 @@
 package com.github.zzzj1233.util
 
-import kotlin.test.assertNotEquals
-
 /**
  * @author Zzzj
  * @create 2021-09-09 22:34
@@ -24,7 +22,33 @@ object MapUtils {
         }
     }
 
-    fun compareMap(old: Map<String, Any>, new: Map<String, Any>): Pair<Map<String, Any>, Map<String, Any>> {
+    fun removeEmptyValues(map: MutableMap<*, *>) {
+        if (map.isEmpty()) {
+            return
+        }
+
+        val iterator = map.iterator()
+
+        while (iterator.hasNext()) {
+            val (_, value) = iterator.next()
+            if (value == null) {
+                iterator.remove()
+            } else if (value is Collection<*> && value.isEmpty()) {
+                iterator.remove()
+            } else if (value is Map<*, *>) {
+                if (value.isEmpty()) {
+                    iterator.remove()
+                } else if (value is MutableMap<*, *>) {
+                    removeEmptyValues(value);
+                    if (value.isEmpty()) {
+                        iterator.remove()
+                    }
+                }
+            }
+        }
+    }
+
+    fun compareMap(old: MutableMap<String, Any>, new: MutableMap<String, Any>): Pair<MutableMap<String, Any>, MutableMap<String, Any>> {
         if (old == new) {
             return old to new
         }

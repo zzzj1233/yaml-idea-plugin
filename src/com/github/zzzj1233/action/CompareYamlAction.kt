@@ -1,19 +1,19 @@
 package com.github.zzzj1233.action
 
-import com.github.zzzj1233.settings.GitlabSettingState
-import com.github.zzzj1233.util.BalloonNotifications
-import com.github.zzzj1233.util.GitUtil
-import com.github.zzzj1233.util.MapUtils
-import com.github.zzzj1233.util.YamlUtils
+import com.github.zzzj1233.diff.YamlTableDialog
+import com.github.zzzj1233.model.YamlDiffContext
+import com.github.zzzj1233.model.YamlDiffHolder
+import com.github.zzzj1233.util.*
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.popup.list.ListPopupImpl
-import java.io.File
-import java.io.FileReader
-import java.io.InputStreamReader
+import java.nio.charset.StandardCharsets
 
 class CompareYamlAction : AnAction() {
 
@@ -23,13 +23,7 @@ class CompareYamlAction : AnAction() {
     }
 
     override fun actionPerformed(event: AnActionEvent) {
-        val settings = GitlabSettingState.getInstance()
-        val project = event.project
-
-        if (project == null || project.basePath.isNullOrBlank()) {
-            BalloonNotifications.showErrorNotification("获取不到当前所在项目")
-            return
-        }
+        val project = event.getRequiredData(CommonDataKeys.PROJECT)
 
         val workdir: String = project.basePath!!
 
@@ -37,8 +31,16 @@ class CompareYamlAction : AnAction() {
         val branches = GitUtil.branches(workdir)
 
         val popupStep = object : BaseListPopupStep<String>("Branches", branches) {
+            var selectedValue: String? = null
+
+            override fun getFinalRunnable(): Runnable? {
+                return Runnable {
+                    selectedValue?.let { onChooseBranch(workdir, it, project) }
+                }
+            }
+
             override fun onChosen(selectedValue: String?, finalChoice: Boolean): PopupStep<*>? {
-                selectedValue?.apply { onChooseBranch(workdir, this) }
+                this.selectedValue = selectedValue
                 return super.onChosen(selectedValue, finalChoice)
             }
         }
@@ -48,19 +50,21 @@ class CompareYamlAction : AnAction() {
     }
 
     // 选择了要比较的分支
-    fun onChooseBranch(workdir: String, compareBranch: String) {
+    fun onChooseBranch(workdir: String, compareBranch: String, project: Project) {
+
         val diffStat = GitUtil.diffStat(workdir, compareBranch)
 
         if (diffStat.isEmpty()) {
-            return
+            return YamlTableDialog(project, YamlDiffContext(), okText = "Ok", dialogTitle = "Compare with ${compareBranch.trim()}", leftPanelTitle = compareBranch, rightPanelTitle = "Local").show()
         }
 
+        // 用正则筛选出所有的yaml配置文件
         var yamlDiffList = diffStat.filter {
             regex.matches(it)
         }
 
         if (yamlDiffList.isEmpty()) {
-            return BalloonNotifications.showSuccessNotification("当前版本和${compareBranch}的yml文件没有差异")
+            return YamlTableDialog(project, YamlDiffContext(), okText = "Ok", dialogTitle = "Compare with ${compareBranch.trim()}", leftPanelTitle = compareBranch, rightPanelTitle = "Local").show()
         }
 
         // 那些模块的yaml做了变更?
@@ -76,78 +80,73 @@ class CompareYamlAction : AnAction() {
                 BalloonNotifications.showSuccessNotification("这些模块 [${ignoreModules.joinToString(",")}] 将会被忽略比较")
         }
 
-        modules = modules.filter { it.startsWith("goldhorse") }
         yamlDiffList = yamlDiffList.filter { it.startsWith("goldhorse") }
 
-        val settingState = GitlabSettingState.getInstance()
-
-        // common模块发生了变更
-        if (modules.contains(settingState.commonModuleName)) {
-
-            // common模块
-            val commonModules = yamlDiffList.filter {
-                it.startsWith(settingState.commonModuleName ?: GitlabSettingState.DEFAULT_MODULE_NAME)
-            }
-
-            if (commonModules.size > 5) {
-                log.warn("commonModules.size > 5 ? commonModules = ${commonModules.joinToString()}")
-                return BalloonNotifications.showErrorNotification("无法进行比较! ${settingState.commonModuleName}存在了相同名称的配置文件")
-            }
-
-            val commonChanged = commonModules.any { it.endsWith("common.yml") || it.endsWith("common.yaml") }
-
-        }
-
-        // 根据module分组
         val moduleDiffMap: Map<String, List<String>> = yamlDiffList
                 .groupBy { it.substringBefore("/") }
-                .filter { it.key != settingState.commonModuleName }
 
-        for ((moduleName, yamlDiffFiles) in moduleDiffMap) {
-            // application.yml是否发生了变化?
-            val commonDiffYml = yamlDiffFiles.filter { it.contains("application.yml") || it.contains("application.yaml") }
+        val gitYamlDiff = YamlDiffContext()
 
-            if (commonDiffYml.size > 1) {
-                BalloonNotifications.showErrorNotification("${moduleName}存在多个`application.ya?ml`文件?,该模块将会被忽略比较")
-                continue
+        val compareYamlFun = genCompareYamlFun(workdir, compareBranch)
+
+        val commonYamlMap: MutableMap<String, String> = mutableMapOf()
+
+        for ((moduleName, diffList) in moduleDiffMap) {
+
+            val common = diffList.find { it.findYaml("application", "application-common") }
+
+            common?.let {
+                commonYamlMap[moduleName] = it
             }
 
-            // 当前的application.yml文件
-            val commonYamlMap = File("$workdir/$moduleName/src/main/resources/application.yml").run {
-                if (this.exists()) YamlUtils.toMap(FileReader(this).use { it.readText() })
-                else YamlUtils.toMap(FileReader(File("$workdir/$moduleName/src/main/resources/application.yaml")).use { it.readText() })
+            diffList.find { it.findYaml("application-dev", "application-commondev") }?.let {
+                gitYamlDiff.addDevModule(moduleName, YamlDiffHolder(moduleName, compareYamlFun.invoke(it, commonYamlMap[moduleName])))
             }
 
-            // diff -stat包含application.yml
-            val branchCommonYamlMap = if (commonDiffYml.isNotEmpty()) {
-                YamlUtils.toMap(GitUtil.fileContent(workdir, compareBranch, commonDiffYml.first()))
-            } else {
-                commonYamlMap
+            diffList.find { it.findYaml("application-fat", "application-commonfat") }?.let {
+                gitYamlDiff.addFatModule(moduleName,
+                        YamlDiffHolder(moduleName, compareYamlFun.invoke(it, commonYamlMap[moduleName])))
             }
 
-            yamlDiffFiles.filter { !it.contains("application.yml") && !it.contains("application.yaml") }
-                    .forEach { diffYamlFilePath ->
-                        // 找文件系统的文件
-                        val localYamlFile = File("$workdir/$diffYamlFilePath").run {
-                            if (this.exists()) this else null
-                        }
+            diffList.find { it.findYaml("application-uat", "application-commonuat") }?.let {
+                gitYamlDiff.addUatModule(moduleName, YamlDiffHolder(moduleName, compareYamlFun.invoke(it, commonYamlMap[moduleName])))
+            }
 
-                        val localYamlText = localYamlFile?.inputStream()?.run {
-                            InputStreamReader(this)
-                                    .use {
-                                        it.readText()
-                                    }
-                        }
-
-                        val localYamlMap = YamlUtils.toMap(localYamlText)
-                        val branchYamlMap = YamlUtils.toMap(GitUtil.fileContent(workdir, compareBranch, diffYamlFilePath))
-
-                        val diff = MapUtils.compareMap(branchYamlMap, localYamlMap)
-
-                        println("$moduleName ---> $diff")
-                    }
+            diffList.find { it.findYaml("application-prod", "application-commonprod") }?.let {
+                gitYamlDiff.addProdModule(moduleName, YamlDiffHolder(moduleName, compareYamlFun.invoke(it, commonYamlMap[moduleName])))
+            }
         }
 
+        commonYamlMap.forEach {
+            gitYamlDiff.addModuleIfAbsent(it.key, YamlDiffHolder(it.key, compareYamlFun.invoke(it.value, null)))
+        }
+
+        YamlTableDialog(project, gitYamlDiff, okText = "Ok", dialogTitle = "Compare with ${compareBranch.trim()}", leftPanelTitle = compareBranch, rightPanelTitle = "Local").show()
+    }
+
+    private fun genCompareYamlFun(workdir: String, branchName: String): (String, String?) -> () -> Pair<MutableMap<String, Any>, MutableMap<String, Any>> {
+        return { yamlFilePath, commonYamlFilePath ->
+            {
+                val path = "$workdir/$yamlFilePath"
+
+                val virtualFile = VirtualFileManager.getInstance().findFileByUrl("file://$path")
+
+                val commonYamlMap = commonYamlFilePath?.run {
+                    val text = VirtualFileManager.getInstance().findFileByUrl("file://$workdir/$this")?.contentsToByteArray()?.toString(StandardCharsets.UTF_8)
+                    YamlUtils.toMap(text)
+                }
+
+                val localYamlMap = YamlUtils.toMap(virtualFile?.contentsToByteArray()?.toString(StandardCharsets.UTF_8))
+                val branchYamlMap = YamlUtils.toMap(GitUtil.fileContent(workdir, branchName, yamlFilePath))
+
+                commonYamlMap?.let {
+                    MapUtils.override(it, localYamlMap)
+                    MapUtils.override(it, branchYamlMap)
+                }
+
+                MapUtils.compareMap(branchYamlMap, localYamlMap)
+            }
+        }
     }
 
 }
