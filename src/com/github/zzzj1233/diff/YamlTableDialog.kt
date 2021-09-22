@@ -32,6 +32,8 @@ class YamlTableDialog(val project: Project, private val yamlDiffContext: YamlDif
 
     private var tableModel = DefaultTableModel(createColumns(), 0)
 
+    var commit = false
+
     init {
         title = dialogTitle
         setOKButtonText(okText)
@@ -113,6 +115,16 @@ class YamlTableDialog(val project: Project, private val yamlDiffContext: YamlDif
         if (row >= 0) {
             YamlDiffDialog(project, yamlDiffContext[selectedEnv!!][modules[row]]!!, leftPanelTitle, rightPanelTitle).show()
         }
+    }
+
+    override fun doOKAction() {
+        commit = true
+        super.doOKAction()
+    }
+
+    override fun doCancelAction() {
+        commit = false
+        super.doCancelAction()
     }
 
 }

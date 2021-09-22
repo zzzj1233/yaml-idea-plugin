@@ -19,7 +19,7 @@ class CompareYamlAction : AnAction() {
 
     companion object {
         private val log = logger<CompareYamlAction>()
-        private val regex = ".*/application(-(dev|fat|uat|prod|common|commondev|commonfat|commonuat|commonprod))?\\.ya?ml\$".toRegex()
+        val regex = ".*/application(-(dev|fat|uat|prod|common|commondev|commonfat|commonuat|commonprod))?\\.ya?ml\$".toRegex()
     }
 
     override fun actionPerformed(event: AnActionEvent) {

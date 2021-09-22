@@ -23,6 +23,7 @@ class YamlDiffDialog(private val project: Project, private val diffHolder: YamlD
         init()
     }
 
+
     override fun createCenterPanel(): JComponent? {
         val ctx = object : DiffContext() {
 

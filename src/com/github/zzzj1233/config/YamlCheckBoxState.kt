@@ -8,7 +8,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil
 @State(name = "YamlCheckBoxConfig", storages = [Storage(file = "yamlbox_info.xml")])
 class YamlCheckBoxState : PersistentStateComponent<YamlCheckBoxState> {
 
-    var open = true
+    var open = false
 
     override fun getState(): YamlCheckBoxState? {
         return this

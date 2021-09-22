@@ -1,5 +1,6 @@
 package com.github.zzzj1233.checkin
 
+import com.github.zzzj1233.action.CompareYamlAction
 import com.github.zzzj1233.config.YamlCheckBoxState
 import com.github.zzzj1233.diff.YamlTableDialog
 import com.github.zzzj1233.model.ChangeWrapper
@@ -23,10 +24,7 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
 
     private val project get() = panel.project
 
-    override fun getBeforeCheckinConfigurationPanel() = BooleanCommitOption(panel, "Yaml check", true,
-            getter = state::open,
-            setter = Consumer { state.open = it }
-    )
+    override fun getBeforeCheckinConfigurationPanel() = BooleanCommitOption(panel, "Yaml check", true, state::open)
 
     companion object {
         private val LOG = logger<YamlCheckInHandler>()
@@ -35,13 +33,13 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
     override fun beforeCheckin(): ReturnResult {
         // 1. 没有勾选yaml check
         if (!state.open) {
-            return ReturnResult.CANCEL
-            // return ReturnResult.COMMIT
+            return ReturnResult.COMMIT
         }
 
         // YamlDiffDialog(panel.project).show()
         var changes = (panel.selectedChanges ?: emptyList())
                 .filter { it.virtualFile != null }
+                .filter { CompareYamlAction.regex.matches(it.virtualFile!!.path) }
                 .map { ChangeWrapper(it) }
                 .filter {
                     if (it.moduleName == null) {
@@ -63,7 +61,7 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
         changes = changes.filter { !ignoreModules.contains(it.moduleName) }
 
         if (changes.isEmpty()) {
-            return ReturnResult.CANCEL
+            return ReturnResult.COMMIT
         }
 
         val moduleDiffMap = changes.groupBy { it.moduleName!! }
@@ -103,9 +101,11 @@ class YamlCheckInHandler(val panel: CheckinProjectPanel, val ctx: CommitContext)
             yamlDiffContext.addModuleIfAbsent(it.key, YamlDiffHolder(it.key, genDiffFun(it.value, null)))
         }
 
-        YamlTableDialog(project, yamlDiffContext).show()
+        val yamlTableDialog = YamlTableDialog(project, yamlDiffContext)
 
-        return ReturnResult.CANCEL
+        yamlTableDialog.show()
+
+        return if (yamlTableDialog.commit) ReturnResult.COMMIT else ReturnResult.CANCEL
     }
 
     private fun genDiffFun(changeWrapper: ChangeWrapper, commonChange: ChangeWrapper?): () -> Pair<MutableMap<String, Any>, MutableMap<String, Any>> {
