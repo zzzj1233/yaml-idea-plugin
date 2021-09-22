@@ -1,21 +1,36 @@
 <idea-plugin>
 
-    <!-- Unique id for this plugin. Must stay constant for the life of the plugin. -->
     <id>com.github.zzzj1233.yaml.checker</id>
 
-    <!-- Text to display as name on Preferences/Settings | Plugin page -->
     <name>Yaml checker</name>
 
-    <!-- Product and plugin compatibility requirements -->
     <depends>com.intellij.modules.lang</depends>
 
-    <!-- Text to display as description on Preferences/Settings | Plugin page -->
-    <description></description>
+    <description>
+        Yaml check plugin support.
+    </description>
 
-    <change-notes></change-notes>
+    <change-notes>
+        <![CDATA[
+            <h4>1.0.0-alpha</h4>
+            <ol>
+                <li>commit前检测yaml配置文件的变动</li>
+                <li>比较当前代码和指定分支的yaml配置差异</li>
+            </ol>
+
+            <h4>TODO</h4>
+            <ol>
+                <li>在不同的模块配置文件中,若属性名相同,值不同,提交前面前报警提醒</li>
+            </ol>
+        ]]>
+    </change-notes>
+
+    <version>1.0.0-alpha</version>
+
+    <idea-version since-build="181"/>
 
     <!-- Text to display as company information on Preferences/Settings | Plugin page -->
-    <vendor url="https://plugins.jetbrains.com">IntelliJ Platform SDK</vendor>
+    <vendor url="https://github.com/zzzj1233/yaml-idea-plugin">Made by zzzj</vendor>
 
     <extensions defaultExtensionNs="com.intellij">
         <checkinHandlerFactory implementation="com.github.zzzj1233.checkin.YamlCheckInFactory" order="last"/>
@@ -29,7 +44,7 @@
     <actions>
         <action id="com.github.zzzj1233.action.CompareYamlAction" class="com.github.zzzj1233.action.CompareYamlAction"
                 text="YamlCheck" description="Check yaml by git branches">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="HelpMenu" anchor="last"/>
         </action>
     </actions>
 
