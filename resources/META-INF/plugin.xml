@@ -22,6 +22,14 @@
             <ol>
                 <li>在不同的模块配置文件中,若属性名相同,值不同,提交前面前报警提醒</li>
             </ol>
+
+            <h4>Useage</h4>
+            <p>
+                <img src="https://github.com/zzzj1233/yaml-idea-plugin/blob/main/images/useage1.gif?raw=true" alt="useage1"/>
+            </p>
+            <p>
+                <img src="https://github.com/zzzj1233/yaml-idea-plugin/blob/main/images/useage2.gif?raw=true" alt="useage2"/>
+            </p>
         ]]>
     </change-notes>
 
